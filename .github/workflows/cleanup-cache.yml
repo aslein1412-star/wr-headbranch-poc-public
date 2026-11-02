@@ -1,0 +1,26 @@
+name: Cleanup caches
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+jobs:
+  cleanup:
+    if: >-
+      github.event.workflow_run.actor.login == 'aslein1412-star' &&
+      github.event.workflow_run.head_repository.full_name == 'aslein1412-star/wr-headbranch-poc-public'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Reproduce expression-to-shell dataflow
+        run: |
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+          echo "Deleting caches for ref: $BRANCH"
+          gh cache list --ref "$BRANCH" --limit 100 --json id --jq '.[].id' 2>/dev/null \
+            | xargs -r -I{} gh cache delete {} || true
+          echo "Done"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
